@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+const p='app/workspace.tsx';let s=fs.readFileSync(p,'utf8');
+// Remove the obsolete standalone source screen; Integrations now lives in Settings.
+const a=s.indexOf(" {view==='Data sources'&&"),b=s.indexOf(" {view==='Settings'&&",a);if(a>=0&&b>a)s=s.slice(0,a)+s.slice(b);
+s=s.replace(',Database,Layers',',Layers');
+s=s.replace("const {leads,total,stats,industries,campaigns,replies,connections}=data;","const {leads,total,stats,industries,campaigns,replies,connections}=data;\n const canEdit=data.access.role!=='viewer',canManage=['owner','admin'].includes(data.access.role);");
+s=s.replace("const openAdd=()=>{", "const openAdd=()=>{if(!canEdit)return;");
+s=s.replace("const submit=(action:string,payload:unknown,message:string)=>run(async()=>{", "const submit=(action:string,payload:unknown,message:string)=>run(async()=>{if(!canEdit&&action!=='switchWorkspace')throw new Error('Your workspace access is read-only.');");
+s=s.replace(" {error&&", " {!loading&&!canEdit&&<div className=\"notice\">You have read-only access. You can browse, filter and export leads.</div>}\n {error&&");
+s=s.replace('<button className="text-button" onClick={openAdd}>','<button className="text-button" disabled={!canEdit} onClick={openAdd}>');
+s=s.replace("onClick={()=>setModal('import')}","disabled={!canEdit} onClick={()=>setModal('import')}");
+s=s.replace("onClick={()=>{setForm({industry:industries[0]", "disabled={!canEdit} onClick={()=>{setForm({industry:industries[0]");
+s=s.replace('<div className="settings-grid"><section','<fieldset disabled={!canManage} className="settings-grid"><section');
+s=s.replace('</div></SettingsPanel>','</fieldset></SettingsPanel>');
+s=s.replace("['State',detail.state]","['State',detail.state]");
+s=s.replace("['Skills',detail.skills]","['Address',[detail.address,detail.zip].filter(Boolean).join(', ')],['Job title',detail.jobTitle],['Skills',detail.skills]");
+s=s.replace("['state','State',STATES]","['state','State',['Not provided',...STATES]]");
+s=s.replace('onChange={v=>setForm({...form,[k]:v})}',"onChange={v=>setForm({...form,[k]:k==='state'&&v==='Not provided'?'':v})}");
+s=s.replace("items={['Needs review','Interested','Not interested','Question','Unsubscribe']} onChange", "items={['Needs review','Interested','Not interested','Question','Unsubscribe','Out of office','Unknown']} onChange");
+fs.writeFileSync(p,s);

@@ -46,3 +46,6 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+
+# User-provided reference archive; never deploy source archives
+/solara-app*.zip

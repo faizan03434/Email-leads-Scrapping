@@ -1,0 +1,11 @@
+import type {Lead} from './domain';
+export type Role='owner'|'admin'|'member'|'viewer';
+export type Membership={id:string;workspaceId:string;userId:string|null;email:string;name:string;role:Role;status:string;createdAt:string};
+export type AuditEntry={id:string;workspaceId:string;actorId:string;actorEmail:string;action:string;entityId:string;summary:string;createdAt:string};
+export type SearchJob={id:string;owner:string;provider:string;criteria:string;status:string;requested:number;processed:number;imported:number;skipped:number;cursor:string;attempts:number;error:string;nextRunAt:string;leaseUntil:number;createdAt:string;updatedAt:string};
+export type Campaign={id:string;owner:string;name:string;industry:string;subject:string;body:string;status:string;createdAt:string;enrolled:number;sent:number};
+export type Reply={id:string;owner:string;leadId:string;name:string;email:string;subject:string;body:string;classification:string;createdAt:string};
+export type Delivery={id:string;owner:string;campaignId:string;leadId:string;status:string;providerId:string|null;error:string|null;createdAt:string;sentAt:string|null;email?:string};
+export type WorkspaceSettings={senderName:string;senderEmail:string;replyTo:string;postalAddress:string;dailyLimit:number};
+export type ProviderInfo={id:string;name:string;configured:boolean;types:string[];description:string;credentials:string[]};
+export type WorkspaceData={leads:Lead[];total:number;stats:{total:number;interested:number;contacted:number;replies:number};industries:string[];campaigns:Campaign[];replies:Reply[];connections:Record<string,boolean>;settings:WorkspaceSettings;providers:ProviderInfo[];jobs:SearchJob[];access:{workspaceId:string;userId:string;email:string;role:Role;workspaces:Membership[]};members:Membership[];audit:AuditEntry[]};

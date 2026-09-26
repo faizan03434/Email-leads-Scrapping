@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+let p='lib/server.ts',s=fs.readFileSync(p,'utf8');
+s=s.replace("import {getChatGPTUser} from '@/app/chatgpt-auth';","import {access,AccessError} from './access';\nimport type {WorkspaceSettings} from './types';");
+s=s.replace('EMPTY_LEAD,STATUSES','STATUSES');
+s=s.replace('env as unknown as Record<string,any>','env as unknown as Record<string,string|undefined>');
+const a=s.indexOf('export async function owner()'),b=s.indexOf('export function originCheck',a);s=s.slice(0,a)+'export async function owner(){return (await access()).workspaceId;}\n'+s.slice(b);
+s=s.replace('failure(e:any)','failure(e:unknown)').replace("e?.name","e instanceof Error?e.name:'UnknownError'").replaceAll('e instanceof HttpError','(e instanceof HttpError||e instanceof AccessError)');
+s=s.replace("'Insurance agent / agency','Candidate'","'Insurance agent / agency','Property owner','Candidate'");
+s=s.replace("notes:z.string().max(10000).default('')","notes:z.string().max(10000).default(''),address:short.default(''),zip:short.default(''),jobTitle:short.default(''),sourceRef:z.string().max(1000).nullable().optional()");
+s=s.replace('export const defaultSettings=','export const defaultSettings:WorkspaceSettings=');s=s.replace('JSON.parse(r.value)','JSON.parse(r.value) as WorkspaceSettings');
+s=s.replace('rows.map((r:any)=>leadSchema.parse(normalizeImportedLead(r)))','rows.map(r=>leadSchema.parse(normalizeImportedLead(z.record(z.unknown()).parse(r))))');
+s=s.replace('notes,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(owner,email) DO NOTHING','notes,address,zip,jobTitle,sourceRef,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING');
+s=s.replace('l.notes,now(),now()','l.notes,l.address,l.zip,l.jobTitle,l.sourceRef||null,now(),now()');
+fs.writeFileSync(p,s);
+p='.gitignore';s=fs.readFileSync(p,'utf8');s+='\n# User-provided reference archive; never deploy source archives\n/solara-app*.zip\n';fs.writeFileSync(p,s);
+p='eslint.config.mjs';s=fs.readFileSync(p,'utf8').replace('"next-env.d.ts",','"next-env.d.ts", "work/**", "outputs/**", ".sites-runtime/**", "dist/**", ".wrangler/**", ".vinext/**",');fs.writeFileSync(p,s);

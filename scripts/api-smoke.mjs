@@ -19,6 +19,18 @@ assert.equal((await api('list',{query:email,page:1})).data.leads[0].status,'Unsu
 result=await api('bulkStatus',{ids:[id],status:'Interested'});assert.equal(result.status,200);
 assert.equal((await api('list',{query:email,page:1})).data.leads[0].status,'Unsubscribed','Suppression survives bulk updates');
 result=await api('export',{query:email});assert.equal(result.data.leads.length,1);
+result=await api('list',{segment:'Replied',query:email});assert.equal(result.data.total,1);
+assert.ok(result.data.audit.some(a=>a.action==='export'),'Exports recorded in audit');
+assert.equal(result.data.access.role,'owner');
+assert.equal((await api('saveMember',{email:result.data.access.email,role:'viewer'})).status,400,'Cannot demote self');
+const memberEmail='viewer-'+Date.now()+'@example.com';
+assert.equal((await api('saveMember',{email:memberEmail,role:'viewer'})).status,200);
+const member=(await api('list')).data.members.find(m=>m.email===memberEmail);assert.equal(member.role,'viewer');
+assert.equal((await api('disableMember',{id:member.id})).status,200);
+assert.equal((await api('switchWorkspace',{workspaceId:'unknown-workspace'})).status,403);
+assert.equal((await api('generate',{provider:'rentcast',industry:'Life Insurance',state:'Texas',city:'Austin',type:'Property owner',limit:100})).status,409,'Missing key is explicit');
+assert.equal((await api('cancelCampaign',{id:campaign.id})).status,200);
+assert.equal((await api('enroll',{campaignId:campaign.id,leadIds:[id]})).status,409,'Cancelled campaigns reject enrollment');
 const bad=await fetch(base+'/api/workspace',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://untrusted.example',Cookie:cookie},body:JSON.stringify({action:'list'})});assert.equal(bad.status,403);
 console.log('PASS: authentication, origin validation, persisted import/deduplication, state/type filters, campaign enrollment, sending gate, reply interest, suppression and export. No email sent.');
 console.log('Local-only test records use example.com and source "Local integration test".');
