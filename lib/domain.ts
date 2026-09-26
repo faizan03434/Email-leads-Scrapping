@@ -2,6 +2,12 @@ export const STATES = 'Alabama|Alaska|Arizona|Arkansas|California|Colorado|Conne
 export const STATUSES = ['New','Contacted','Interested','Not interested','Qualified','Unsubscribed'];
 export const EMPTY_LEAD = {name:'',email:'',phone:'',company:'',industry:'Life Insurance',state:'Texas',city:'',type:'Prospect',skills:'',experience:'',source:'Manual entry',sourceUrl:'',status:'New',notes:'',permission:'Unknown'};
 export type Lead = typeof EMPTY_LEAD & {id:string;resumeKey?:string;createdAt:string};
+export function normalizeImportedLead(row:Record<string,unknown>) {
+ const normalized:Record<string,unknown>={...EMPTY_LEAD,state:'',...row};
+ for(const key of ['industry','type','source','status','permission'] as const)if(!String(normalized[key]??'').trim())normalized[key]=EMPTY_LEAD[key];
+ normalized.email=String(row.email||'').trim().toLowerCase();
+ return normalized;
+}
 export function csvEscape(value:unknown) {let s=String(value??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"';}
 export function parseCSV(text:string):Record<string,string>[] {const rows:string[][]=[];let row:string[]=[],cell='',quoted=false;text=text.replace(/^\uFEFF/,'');for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'){if(quoted&&text[i+1]==='"'){cell+='"';i++;}else quoted=!quoted;}else if(c===','&&!quoted){row.push(cell);cell='';}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cell);if(row.some(Boolean))rows.push(row);row=[];cell='';}else cell+=c;}if(quoted)throw new Error('Unclosed CSV quote');row.push(cell);if(row.some(Boolean))rows.push(row);const h=rows.shift()?.map(x=>x.trim())??[];if(!h.includes('name'))throw new Error('CSV needs a name column.');return rows.map(r=>Object.fromEntries(h.map((k,i)=>[k,r[i]?.trim()??''])));}
 export function renderTemplate(template:string,lead:Record<string,any>) {return template.replace(/\{\{(name|company|city|state|skills|industry)\}\}/g,(_,key)=>String(lead[key]??''));}
