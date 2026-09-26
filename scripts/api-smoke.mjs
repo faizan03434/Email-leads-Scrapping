@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+const base='http://localhost:5173';
+const auth=await fetch(base+'/signin-with-chatgpt?return_to=/',{redirect:'manual'});const cookie=auth.headers.getSetCookie().map(x=>x.split(';')[0]).join('; ');assert.ok(cookie,'Local test sign-in cookie');
+async function api(action,data={},authenticated=true){const r=await fetch(base+'/api/workspace',{method:'POST',headers:{'Content-Type':'application/json',Origin:base,...(authenticated?{Cookie:cookie}:{})},body:JSON.stringify({action,data})});return{status:r.status,data:await r.json()};}
+assert.equal((await api('list',{},false)).status,401,'Anonymous requests denied');
+let result=await api('list',{page:1});assert.equal(result.status,200,JSON.stringify(result));
+const email='test-'+Date.now()+'@example.com';const lead={name:'Integration Test Contact',email,industry:'Life Insurance',type:'Insurance consumer',state:'Texas',city:'Austin',permission:'Opted in',source:'Local integration test'};
+result=await api('import',{rows:[lead,lead]});assert.equal(result.data.imported,1);assert.equal(result.data.skipped,1);
+result=await api('list',{query:email,state:'Texas',type:'Insurance consumer',page:1});assert.equal(result.data.total,1);const id=result.data.leads[0].id;
+assert.equal((await api('list',{query:email,state:'Florida',page:1})).data.total,0);
+result=await api('saveCampaign',{name:'Integration test '+email,industry:'Life Insurance',subject:'Hello {{name}}',body:'Test draft only'});assert.equal(result.status,200);
+const campaign=(await api('list',{page:1})).data.campaigns.find(c=>c.name.endsWith(email));assert.ok(campaign);
+result=await api('enroll',{campaignId:campaign.id,leadIds:[id,id]});assert.equal(result.data.enrolled,1);
+result=await api('sendCampaign',{id:campaign.id});assert.equal(result.status,409,'No sends without enabled credentials');
+result=await api('logReply',{email,subject:'Interested',body:'Please send details',classification:'Interested'});assert.equal(result.status,200);
+assert.equal((await api('list',{query:email,page:1})).data.leads[0].status,'Interested');
+result=await api('logReply',{email,subject:'Stop',body:'Unsubscribe',classification:'Unsubscribe'});assert.equal(result.status,200);
+assert.equal((await api('list',{query:email,page:1})).data.leads[0].status,'Unsubscribed');
+result=await api('bulkStatus',{ids:[id],status:'Interested'});assert.equal(result.status,200);
+assert.equal((await api('list',{query:email,page:1})).data.leads[0].status,'Unsubscribed','Suppression survives bulk updates');
+result=await api('export',{query:email});assert.equal(result.data.leads.length,1);
+const bad=await fetch(base+'/api/workspace',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://untrusted.example',Cookie:cookie},body:JSON.stringify({action:'list'})});assert.equal(bad.status,403);
+console.log('PASS: authentication, origin validation, persisted import/deduplication, state/type filters, campaign enrollment, sending gate, reply interest, suppression and export. No email sent.');
+console.log('Local-only test records use example.com and source "Local integration test".');

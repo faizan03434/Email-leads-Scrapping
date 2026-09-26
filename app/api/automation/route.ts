@@ -1,0 +1,3 @@
+import {db,runtime,equal,failure,HttpError} from '@/lib/server';
+import {sendCampaign} from '@/lib/outreach';
+export async function POST(req:Request){try{const secret=runtime().SCHEDULER_SECRET;if(!secret||!equal(req.headers.get('authorization')||'',`Bearer ${secret}`))throw new HttpError(401,'Unauthorized');const c=await db().prepare("SELECT c.id,c.owner FROM campaigns c WHERE c.status='Active' AND EXISTS(SELECT 1 FROM deliveries d WHERE d.campaignId=c.id AND d.status='Queued') ORDER BY c.createdAt LIMIT 1").first<any>();if(!c)return Response.json({processed:0});return Response.json(await sendCampaign(c.owner,c.id));}catch(e){return failure(e);}}

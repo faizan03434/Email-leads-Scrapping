@@ -1,0 +1,2 @@
+import {verify,createPublicKey} from 'node:crypto';
+export function verifySendGrid(raw:Uint8Array,timestamp:string,signature:string,publicKey:string){try{if(!/^\d+$/.test(timestamp)||Math.abs(Date.now()/1000-Number(timestamp))>300)return false;const key=publicKey.includes('BEGIN PUBLIC KEY')?createPublicKey(publicKey):createPublicKey({key:Buffer.from(publicKey,'base64'),format:'der',type:'spki'});return verify('sha256',Buffer.concat([Buffer.from(timestamp),Buffer.from(raw)]),key,Buffer.from(signature,'base64'));}catch{return false;}}
