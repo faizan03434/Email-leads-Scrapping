@@ -5,9 +5,9 @@ export interface EmailProvider{send(message:EmailMessage):Promise<DeliveryResult
 
 // ── SendGrid HTTP provider ────────────────────────────────────────────────────
 export const sendGridProvider:EmailProvider={async send(m){
- const key=runtime().SENDGRID_API_KEY;
+ const key=(await runtime()).SENDGRID_API_KEY;
  if(!key)throw new HttpError(409,'SendGrid API key is not configured. Set SENDGRID_API_KEY.');
- const inboundDomain=runtime().INBOUND_REPLY_DOMAIN;
+ const inboundDomain=(await runtime()).INBOUND_REPLY_DOMAIN;
  if(inboundDomain&&!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(inboundDomain))throw new HttpError(503,'Invalid inbound reply domain');
  if(inboundDomain)m={...m,replyTo:`reply+${m.deliveryId}@${inboundDomain.toLowerCase()}`};
  const response=await fetch('https://api.sendgrid.com/v3/mail/send',{
@@ -29,8 +29,8 @@ export const sendGridProvider:EmailProvider={async send(m){
 }};
 
 // ── Active provider ───────────────────────────────────────────────────────────
-export function activeEmailProvider():EmailProvider{
- const e=runtime();
+export async function activeEmailProvider():Promise<EmailProvider>{
+ const e=(await runtime());
  if(e.SENDGRID_API_KEY)return sendGridProvider;
  throw new HttpError(409,'No email provider configured. Set SENDGRID_API_KEY.');
 }

@@ -1,19 +1,23 @@
 import {permissionError} from './permissions';
 export {canManage} from './permissions';
-import {headers} from 'next/headers';
-import {getChatGPTUser} from '@/app/chatgpt-auth';
-import {env} from 'cloudflare:workers';
+import {controlDatabase} from '@/db/control';
+import {encrypt,decrypt} from '@/lib/setup/security';
 import type {Membership,Role} from './types';
 export class AccessError extends Error{constructor(public status:number,message:string){super(message);}}
+// One durable workspace for every visitor. No cookie or request header selects ownership.
 export async function access(){
- const user=await getChatGPTUser();if(!user)throw new AccessError(401,'Sign in to access your workspace.');if(!env.DB)throw new AccessError(503,'Workspace database unavailable');
- const email=user.email.toLowerCase();const createdAt=new Date().toISOString();
- await env.DB.prepare("INSERT INTO memberships (id,workspaceId,userId,email,name,role,status,createdAt) VALUES (?,?,?,?,?,'owner','Active',?) ON CONFLICT(workspaceId,email) DO NOTHING").bind(crypto.randomUUID(),user.userId,user.userId,email,user.displayName,createdAt).run();
- const results=await env.DB.prepare("SELECT * FROM memberships WHERE (userId=? OR (userId IS NULL AND email=?)) AND status='Active'").bind(user.userId,email).all<Membership>();
- const h=await headers();const selected=h.get('cookie')?.split(';').map(x=>x.trim()).find(x=>x.startsWith('leadflow-workspace='))?.slice(19);
- const membership=results.results.find(m=>m.workspaceId===selected)||results.results.find(m=>m.workspaceId===user.userId);
- if(!membership)throw new AccessError(403,'Workspace membership is inactive.');
- if(!membership.userId)await env.DB.prepare('UPDATE memberships SET userId=?,name=? WHERE id=? AND userId IS NULL AND email=?').bind(user.userId,user.displayName,membership.id,email).run();
- return {workspaceId:membership.workspaceId,userId:user.userId,email,role:membership.role,workspaces:results.results};
+ const sql=controlDatabase();
+ let [saved]=await sql`SELECT payload FROM public.app_configuration WHERE name='sharedWorkspace'`;
+ if(!saved){
+  // Preserve records created before login was removed, without retaining authentication.
+  const [legacy]=await sql`SELECT payload FROM public.app_configuration WHERE name='admin'`;
+  const previous=legacy?decrypt<{id:string}>(legacy.payload,'admin').id:null;
+  const id=previous||'00000000-0000-4000-8000-000000000001';
+  await sql`INSERT INTO public.app_configuration (name,payload) VALUES ('sharedWorkspace',${encrypt({id},'sharedWorkspace')}) ON CONFLICT(name) DO NOTHING`;
+  [saved]=await sql`SELECT payload FROM public.app_configuration WHERE name='sharedWorkspace'`;
+ }
+ const {id}=decrypt<{id:string}>(saved.payload,'sharedWorkspace');
+ const member:Membership={id,workspaceId:id,userId:id,email:'shared-workspace',name:'Client workspace',role:'owner',status:'Active',createdAt:''};
+ return{workspaceId:id,userId:id,email:member.email,role:'owner' as Role,workspaces:[member]};
 }
 export function authorize(role:Role,action:string){const message=permissionError(role,action);if(message)throw new AccessError(403,message);}

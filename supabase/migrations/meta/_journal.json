@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790483229830,
+      "tag": "0000_illegal_prowler",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790486070098,
+      "tag": "0001_private_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790486070099,
+      "tag": "0002_resume_storage",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790486070100,
+      "tag": "0003_setup_dashboard",
+      "breakpoints": true
+    }
+  ]
+}

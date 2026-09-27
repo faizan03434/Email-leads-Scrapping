@@ -21,3 +21,6 @@ test('Personalization replaces only supported fields without evaluating content'
  assert.equal(renderTemplate('Hi {{name}} in {{city}}. {{unknown}}',{name:'Sam',city:'Austin'}),'Hi Sam in Austin. {{unknown}}');
  assert.equal(renderTemplate('{{name}}',{name:'<script>bad()</script>'}),'<script>bad()</script>');
 });
+
+import {allowedOrigin} from '../lib/request-origin.ts';
+test('CSRF allows the configured public origin behind a proxy and rejects other origins',()=>{assert.equal(allowedOrigin('http://localhost:3000/api/auth','https://workspace.example','https://workspace.example'),true);assert.equal(allowedOrigin('http://localhost:3000/api/auth','https://evil.example','https://workspace.example'),false);assert.equal(allowedOrigin('https://preview.example/api/auth','https://preview.example',undefined),true);});

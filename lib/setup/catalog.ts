@@ -1,0 +1,13 @@
+export type SetupField={key:string;label:string;secret?:boolean;kind?:'boolean'|'url';required?:boolean};
+export type SetupGroup={id:string;title:string;description:string;testable:boolean;fields:SetupField[]};
+export const setupGroups:SetupGroup[]=[
+ {id:'supabase',title:'Supabase connection',description:'Database and private resume storage. Switching projects does not copy existing data.',testable:true,fields:[{key:'NEXT_PUBLIC_SUPABASE_URL',label:'Project URL',kind:'url',required:true},{key:'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',label:'Publishable key',secret:true,required:true},{key:'SUPABASE_SERVICE_ROLE_KEY',label:'Server secret key',secret:true,required:true},{key:'DATABASE_URL',label:'PostgreSQL pooler connection string',secret:true,required:true}]},
+ {id:'sendgrid',title:'SendGrid',description:'Outbound email delivery. Enable live sending only after sender identity is configured.',testable:true,fields:[{key:'SENDGRID_API_KEY',label:'API key',secret:true},{key:'APP_URL',label:'Public app URL',kind:'url'},{key:'LIVE_SEND_ENABLED',label:'Enable live sending',kind:'boolean'},{key:'UNSUBSCRIBE_SECRET',label:'Unsubscribe signing secret',secret:true}]},
+ {id:'licensed',title:'Licensed contacts API',description:'Your licensed lead or ATS adapter.',testable:false,fields:[{key:'LEAD_API_URL',label:'API URL',kind:'url'},{key:'LEAD_API_KEY',label:'API key',secret:true}]},
+ {id:'rentcast',title:'RentCast',description:'Property records and owner information.',testable:false,fields:[{key:'RENTCAST_API_KEY',label:'API key',secret:true}]},
+ {id:'adzuna',title:'Adzuna',description:'Job listings and employer hiring signals.',testable:false,fields:[{key:'ADZUNA_APP_ID',label:'App ID'},{key:'ADZUNA_APP_KEY',label:'App key',secret:true}]},
+ {id:'batchdata',title:'BatchData',description:'Contact enrichment for existing property leads.',testable:false,fields:[{key:'BATCHDATA_API_KEY',label:'API key',secret:true}]},
+ {id:'webhooks',title:'Replies & webhooks',description:'Signed SendGrid callbacks and the optional inbound gateway.',testable:false,fields:[{key:'SENDGRID_EVENT_PUBLIC_KEY',label:'SendGrid event verification key',secret:true},{key:'SENDGRID_PARSE_PUBLIC_KEY',label:'SendGrid parse verification key',secret:true},{key:'INBOUND_REPLY_DOMAIN',label:'Inbound reply domain'},{key:'INBOUND_WEBHOOK_SECRET',label:'Inbound gateway signing secret',secret:true}]},
+ {id:'automation',title:'Automation',description:'The scheduler must use this same bearer secret. Saving it does not create a scheduler.',testable:false,fields:[{key:'CRON_SECRET',label:'Scheduler secret',secret:true}]},
+];
+export const findGroup=(id:string)=>setupGroups.find(group=>group.id===id);

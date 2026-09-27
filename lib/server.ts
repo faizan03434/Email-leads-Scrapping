@@ -1,13 +1,14 @@
-import {env} from 'cloudflare:workers';
+import {database} from '@/db';
+import {allowedOrigin} from './request-origin';
 import {access,AccessError} from './access';
 import type {WorkspaceSettings} from './types';
 import {z} from 'zod';
 import {STATUSES,normalizeImportedLead} from './domain';
-export const runtime=()=>env as unknown as Record<string,string|undefined>;
-export function db():D1Database {if(!env.DB)throw new Error('Database is not configured');return env.DB;}
+export {getConfiguration as runtime} from './setup/store';
+export const db=database;
 export class HttpError extends Error {constructor(public status:number,message:string){super(message);}}
 export async function owner(){return (await access()).workspaceId;}
-export function originCheck(req:Request){const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)throw new HttpError(403,'Origin not allowed');}
+export function originCheck(req:Request){if(!allowedOrigin(req.url,req.headers.get('origin'),process.env.APP_URL))throw new HttpError(403,'Origin not allowed');}
 export function failure(e:unknown){console.error('Workspace request failed',(e instanceof HttpError||e instanceof AccessError)?e.message:e instanceof Error?e.name:'UnknownError');return Response.json({error:(e instanceof HttpError||e instanceof AccessError)?e.message:e instanceof z.ZodError?e.issues.map(x=>`${x.path.join('.')}: ${x.message}`).slice(0,3).join('; '):'Unable to complete this request. Please retry.'},{status:(e instanceof HttpError||e instanceof AccessError)?e.status:e instanceof z.ZodError?400:503});}
 export const now=()=>new Date().toISOString();
 const short=z.string().trim().max(300);
