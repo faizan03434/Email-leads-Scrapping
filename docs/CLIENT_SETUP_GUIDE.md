@@ -14,7 +14,7 @@ Dashboard loads leads from Supabase Database (PostgreSQL)
        ↓
 Generate Leads → RentCast (property owners) or Adzuna (job openings)
        ↓
-Enrich Leads → BatchData adds email/phone to leads that have no email
+Enrich Leads → Tracerfy adds email/phone to leads that have no email
        ↓
 Upload Resume → Supabase Storage (private bucket)
        ↓
@@ -113,24 +113,26 @@ Copy the output and set it as `CONFIG_ENCRYPTION_KEY`. **Never change this value
 
 **Free tier:** 50 API requests/month (~500 leads). Paid plans available for higher volume.
 
-> **Note:** RentCast does not include email addresses. Use BatchData (below) to enrich leads with contact details.
+> **Note:** RentCast does not include email addresses. Use Tracerfy (below) to enrich leads with contact details.
 
 ---
 
-### 5. BatchData — Email & Phone Enrichment
+### 5. Tracerfy — Email & Phone Enrichment
 
-**What it does:** Takes property leads from RentCast (which have no email) and finds the owner's email address and phone number through property skip-trace. This is what makes RentCast leads contactable.
+**What it does:** Takes property leads from RentCast (which have no email) and finds the owner's email address and phone number through property skip-trace. Email/phone availability is not guaranteed; contact permission stays unchanged.
 
 **Where to get it:**
-1. Go to **app.batchdata.com** → Register
-2. Add billing credits to your account (minimum ~$10)
-3. Dashboard → API Keys → Copy key
+1. Go to **tracerfy.com** → Register
+2. Add billing credits to your Tracerfy account
+3. Profile → Settings → API Key → Copy token
 
 | Variable | Where to find it | What it does |
 |---|---|---|
-| `BATCHDATA_API_KEY` | BatchData Dashboard → API Keys | Authorizes skip-trace requests to find owner contact info |
+| `TRACERFY_API_KEY` | Tracerfy Dashboard → API Keys | Authorizes skip-trace requests to find owner contact info |
 
-**Pricing:** Pay-per-match (~$0.15–$0.40 per matched record). No monthly minimum on the self-serve plan.
+Open **Setup & connections → Tracerfy**, save the token and use **Test connection** (no tracing charge). In Leads, **Enrich / check Tracerfy** first submits up to 1,000 untraced property leads; click again after processing to import results. Completed attempts are remembered so misses are not automatically billed again.
+
+**Pricing:** Advanced batch owner lookup: 2 credits ($0.04) per successful result; pay-as-you-go. Normal batch ($0.02) also requires owner name and mailing-address fields and is not used by this integration. Instant lookup ($0.10) is not used.
 
 ---
 
@@ -244,7 +246,7 @@ Run this command once for each secret. They must remain stable — changing them
 | 12 | `RENTCAST_API_KEY` | RentCast | ✅ Yes (for property leads) | Free (50/mo) | app.rentcast.io → API |
 | 13 | `ADZUNA_APP_ID` | Adzuna | ✅ Yes (for job leads) | Free | developer.adzuna.com |
 | 14 | `ADZUNA_APP_KEY` | Adzuna | ✅ Yes (for job leads) | Free | developer.adzuna.com |
-| 15 | `BATCHDATA_API_KEY` | BatchData | ⚠️ Recommended | Pay-per-use (~$0.15–$0.40/match) | app.batchdata.com |
+| 15 | `TRACERFY_API_KEY` | Tracerfy | ⚠️ Recommended | Advanced batch: $0.04/successful result | tracerfy.com |
 | 16 | `INBOUND_WEBHOOK_SECRET` | Self-generated | ⚠️ Recommended | Free | Generate with node command |
 | 17 | `CRON_SECRET` | Self-generated | ⚠️ Recommended | Free | Generate with node command |
 | 18 | `SENDGRID_EVENT_PUBLIC_KEY` | SendGrid | Optional | Free (included) | SendGrid → Event Webhook settings |
@@ -266,7 +268,7 @@ To get the system fully working, these are the absolute minimum credentials need
 6. **RentCast** — RENTCAST_API_KEY (for Life Insurance leads)
 7. **Adzuna** — ADZUNA_APP_ID + ADZUNA_APP_KEY (for Hiring leads)
 
-BatchData is strongly recommended if you want to send emails to RentCast leads (since RentCast does not include emails on its own).
+Tracerfy is strongly recommended if you want to send emails to RentCast leads (since RentCast does not include emails on its own).
 
 ---
 

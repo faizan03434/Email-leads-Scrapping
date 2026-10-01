@@ -18,3 +18,5 @@ export async function testSupabase(config:Configuration){
  }finally{await sql.end({timeout:2});}
 }
 export async function testSendGrid(config:Configuration){if(!config.SENDGRID_API_KEY)throw new Error('Enter a SendGrid API key');const response=await fetch('https://api.sendgrid.com/v3/scopes',{headers:{Authorization:'Bearer '+config.SENDGRID_API_KEY},signal:AbortSignal.timeout(10000)});if(!response.ok)throw new Error('SendGrid could not validate this key (check its permissions)');const body=await response.json() as {scopes?:string[]};if(!body.scopes?.includes('mail.send'))throw new Error('The key needs the mail.send permission');return 'SendGrid key verified. No email was sent.';}
+
+export async function testTracerfy(config:Configuration){if(!config.TRACERFY_API_KEY)throw new Error('Enter a Tracerfy API key');const {tracerfyRequest}=await import('../tracerfy');await tracerfyRequest(config.TRACERFY_API_KEY,'analytics/');return 'Tracerfy API key verified. No leads were traced and no trace credits were used.';}

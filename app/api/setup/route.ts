@@ -4,7 +4,7 @@ import {getConfiguration,withConfiguration,type Configuration} from '@/lib/setup
 import {decrypt,encrypt} from '@/lib/setup/security';
 import {revisionOf,validatedChanges} from '@/lib/setup/validation';
 import {setupGroups,findGroup} from '@/lib/setup/catalog';
-import {testSupabase,testSendGrid} from '@/lib/setup/checks';
+import {testSupabase,testSendGrid,testTracerfy} from '@/lib/setup/checks';
 import {initializeSupabase} from '@/lib/setup/initialize';
 import {failure,HttpError,originCheck} from '@/lib/server';
 export const maxDuration=60;
@@ -24,7 +24,7 @@ async function postHandler(req:Request){try{
  let message='Settings saved. New requests use the updated values.';
  if(group.id==='supabase'||input.action==='test'){
   if(!group.testable)throw new HttpError(400,'This provider has no non-billable connection test. Save its settings, then run a search when ready.');
-  try{message=group.id==='supabase'?await testSupabase(candidate):await testSendGrid(candidate);}catch{throw new HttpError(400,'Connection check failed. Verify the credentials, required migrations, private bucket and provider permissions. Existing settings were kept.');}
+  try{message=group.id==='supabase'?await testSupabase(candidate):group.id==='tracerfy'?await testTracerfy(candidate):await testSendGrid(candidate);}catch{throw new HttpError(400,'Connection check failed. Verify the credentials, required migrations, private bucket and provider permissions. Existing settings were kept.');}
  }
  if(input.action==='test')return Response.json({message});
  await controlDatabase().begin(async tx=>{

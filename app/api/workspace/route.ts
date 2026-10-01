@@ -1,3 +1,4 @@
+import {enrichLeads} from '@/lib/enrichment';
 import {withConfiguration} from '@/lib/setup/store';
 export const maxDuration=300;
 import {z} from 'zod';
@@ -11,7 +12,6 @@ import type {Campaign,Reply,SearchJob,Membership,AuditEntry} from '@/lib/types';
 const id=z.string().uuid(),text=z.string().trim().min(1).max(300);
 const classification=z.enum(['Needs review','Interested','Not interested','Question','Unsubscribe','Out of office','Unknown']);
 type Payload=Record<string,unknown>;
-const record=(value:unknown):Payload=>value!==null&&typeof value==='object'&&!Array.isArray(value)?value as Payload:{};
 function where(user:string,d:Payload){
  const clauses=['owner=?'],values:(string|number)[]=[user];
  for(const [key,all] of [['industry','All industries'],['state','All states'],['status','All statuses'],['type','All lead types']]){if(typeof d[key]==='string'&&d[key]&&d[key]!==all){clauses.push(`${key}=?`);values.push(d[key]);}}
@@ -72,51 +72,7 @@ async function execute(action:string,d:Payload,ctx:Awaited<ReturnType<typeof acc
  if(action==='generate')return Response.json(await createSearchJob(user,d));
  if(action==='runJob')return Response.json(await processSearchJob(user,id.parse(d.id)));
  if(action==='cancelJob'){await database.prepare("UPDATE searchJobs SET status='Cancelled',updatedAt=? WHERE id=? AND owner=? AND status!='Completed'").bind(now(),id.parse(d.id),user).run();return Response.json({message:'Cancellation saved. Imported leads remain available.'});}
- if(action==='enrichLeads'){
-  const batchKey=(await runtime()).BATCHDATA_API_KEY;
-  if(!batchKey)throw new HttpError(409,'BatchData API key not configured. Set BATCHDATA_API_KEY in environment.');
-  // Get leads with no email (up to 100 at a time — BatchData limit per call)
-  const targets=await database.prepare("SELECT * FROM leads WHERE owner=? AND (email IS NULL OR email='') LIMIT 100").bind(user).all<Lead>();
-  if(!targets.results.length)return Response.json({message:'All leads already have an email address.',matched:0,attempted:0});
-  const leads=targets.results;
-  // Call BatchData skip-trace API
-  let bdResults:unknown[]=[];
-  const warnings:string[]=[];
-  try{
-   const bdRes=await fetch('https://api.batchdata.com/api/v1/property/skip-trace',{
-    method:'POST',
-    headers:{Authorization:`Bearer ${batchKey}`,'Content-Type':'application/json'},
-    body:JSON.stringify({requests:leads.map(l=>({address:{street:l.address||l.city,city:l.city,state:l.state,zip:l.zip||''}}))}),
-    signal:AbortSignal.timeout(30000),
-   });
-   if(!bdRes.ok){const t=await bdRes.text().catch(()=>'');throw new Error(`BatchData returned ${bdRes.status}: ${t.slice(0,200)}`);}
-   const bdJson=record(await bdRes.json());
-   const items=record(bdJson.results).persons||bdJson.results||bdJson.persons||[];
-   bdResults=Array.isArray(items)?items:[];
-   if(!Array.isArray(bdResults))bdResults=[];
-  }catch(e){warnings.push(e instanceof Error?e.message:'BatchData request failed');}
-  // Map results back to leads
-  let matched=0;
-  const updates:Array<{id:string;email:string;phone:string}>=[];
-  leads.forEach((lead,i)=>{
-   const result=record(bdResults[i]);
-   if(!result)return;
-   const person=record(result.person||result.owner||result);
-   const emails=person.emails||result.emails||[];
-   const phones=person.phoneNumbers||result.phoneNumbers||person.phones||[];
-   const email=Array.isArray(emails)?(typeof emails[0]==='string'?emails[0]:record(emails[0]).email||''):'';
-   const phone=Array.isArray(phones)?(typeof phones[0]==='string'?phones[0]:record(phones[0]).number||''):'';
-   if(typeof email==='string'&&email.includes('@')){updates.push({id:lead.id,email:email.toLowerCase(),phone:typeof phone==='string'?phone:''});matched++;}
-  });
-  // Apply updates
-  if(updates.length){
-   await database.batch(updates.map(u=>
-    database.prepare("UPDATE leads SET email=?,phone=CASE WHEN phone='' THEN ? ELSE phone END,updatedAt=? WHERE id=? AND owner=? AND (email IS NULL OR email='')").bind(u.email,u.phone,now(),u.id,user)
-   ));
-  }
-  const msg=`${matched} of ${leads.length} leads enriched with email${warnings.length?` (warning: ${warnings[0]})`:''}`;
-  return Response.json({ok:true,matched,attempted:leads.length,message:msg,warnings});
- }
+ if(action==='enrichLeads')return Response.json(await enrichLeads(user));
  if(action==='retryJob'){await database.prepare("UPDATE searchJobs SET status='Queued',attempts=0,error='',nextRunAt=?,leaseUntil=0,updatedAt=? WHERE id=? AND owner=? AND status='Failed'").bind(now(),now(),id.parse(d.id),user).run();return Response.json({message:'Search queued from its saved cursor.'});}
  if(action==='auditHistory'){if(!canManage(ctx.role))throw new HttpError(403,'Administrator access required');const rows=await database.prepare('SELECT * FROM auditLogs WHERE workspaceId=? AND entityId=? ORDER BY createdAt DESC LIMIT 200').bind(user,id.parse(d.id)).all<AuditEntry>();return Response.json({audit:rows.results});}
  throw new HttpError(400,'Unknown action');

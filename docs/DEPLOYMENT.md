@@ -34,7 +34,7 @@ The original project has the migrations applied. For a fresh installation, run `
 
 ## Setup dashboard
 
-Settings ? Setup & connections manages SendGrid, licensed lead API, RentCast, Adzuna, BatchData, signed webhooks, the scheduler secret and Supabase.
+Settings ? Setup & connections manages SendGrid, licensed lead API, RentCast, Adzuna, Tracerfy, signed webhooks, the scheduler secret and Supabase.
 
 Leave a secret blank to retain it. Clear explicitly disables an optional setting. Saved values override environment defaults. Supabase changes require a connection check and a switch confirmation, but no password. Restore deployment connection returns to verified environment defaults. Initialize empty project & connect applies migrations and creates the private resume bucket in a fresh project; it refuses existing app tables.
 

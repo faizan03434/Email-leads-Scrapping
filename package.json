@@ -12,7 +12,7 @@
     "start": "next start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "deploy": "npx vercel",
-    "test": "node --experimental-strip-types --test scripts/domain.test.mjs scripts/postgres.test.mjs scripts/sendgrid.test.mjs scripts/provider.test.mjs scripts/setup.test.mjs",
+    "test": "node --experimental-strip-types --test scripts/domain.test.mjs scripts/postgres.test.mjs scripts/sendgrid.test.mjs scripts/provider.test.mjs scripts/setup.test.mjs scripts/tracerfy.test.mjs",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",

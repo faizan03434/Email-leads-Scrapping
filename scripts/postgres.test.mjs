@@ -35,7 +35,7 @@ test('Millisecond leases and affected row counts support retry and concurrent se
  await db.prepare("UPDATE searchJobs SET status='Cancelled',leaseUntil=0 WHERE id=?").bind('job').run();assert.equal((await claim()).meta.changes,0);
 });
 test('Every static application query plans on PostgreSQL, including aggregates and upserts',async()=>{
- const files=['lib/server.ts','lib/access.ts','lib/outreach.ts','lib/search-jobs.ts',...fs.readdirSync('app/api',{recursive:true}).filter(f=>f.endsWith('route.ts')).map(f=>'app/api/'+f)];let count=0;
+ const files=['lib/server.ts','lib/access.ts','lib/outreach.ts','lib/search-jobs.ts','lib/enrichment.ts',...fs.readdirSync('app/api',{recursive:true}).filter(f=>f.endsWith('route.ts')).map(f=>'app/api/'+f)];let count=0;
  for(const file of files){const source=ts.createSourceFile(file,fs.readFileSync(file,'utf8'),ts.ScriptTarget.Latest,true);const queries=[];
   function visit(n){if(ts.isCallExpression(n)&&ts.isPropertyAccessExpression(n.expression)&&n.expression.name.text==='prepare'&&n.arguments[0]&&(ts.isStringLiteral(n.arguments[0])||ts.isNoSubstitutionTemplateLiteral(n.arguments[0])))queries.push(n.arguments[0].text);ts.forEachChild(n,visit);}visit(source);
   for(const query of queries){const sql=compileSql(query);const params=[...sql.matchAll(/\$(\d+)/g)].map(m=>Number(m[1]));try{await pg.query('EXPLAIN '+sql,Array(Math.max(0,...params)).fill(null));}catch(error){throw new Error(`${file}: ${sql}: ${error.message}`);}count++;}
